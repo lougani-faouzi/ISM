@@ -10,11 +10,15 @@ make
 ```
 pour executler 
 
+```
 ./main.exe
+```
 
 supprimer les executables 
+```
 
 make clean 
+```
 
 
 
