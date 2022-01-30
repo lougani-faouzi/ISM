@@ -1,189 +1,410 @@
 #include "simulation.h"
-#include <stdio.h>
-#include <stdlib.h>
 #include <math.h>
 
-
-particles_t *lecture(char *fname)
+lennard_jones compute_Lennard_Jones(particles_t *p, double **r)
 {
-  // lecture apartir d'un fichier de coordonnée et allocation de la structure 
-  int val,val2;
-  int type;
-  double x,y,z;
-  int nb_elemt =0;
-  int read;
-  char temp[1001];
+  
+  double sommefx = 0.0;
+  double sommefy = 0.0;
+  double sommefz = 0.0;
 
-  FILE *file=fopen(fname, "r");
-  
-  do
-  {
-    if(read=='\n') nb_elemt++;
-  } while((read=fgetc(file))!= EOF);
+  lennard_jones jon;
+  double tmp = 0.0;
 
-  particles_t *p = (particles_t*)malloc(sizeof(particles_t)*nb_elemt);
-  rewind(file);
-  fscanf(file,"%d   %d",&val,&val2);
-  
-  p->nb_elemt=nb_elemt-1;
-  p->type = aligned_alloc(64,nb_elemt*sizeof(p));
-  
-  //allication de l espace memoire pour les coordonnées x,y,z des  particules 
-  p->x = aligned_alloc(64,nb_elemt*sizeof(p));
-  p->y = aligned_alloc(64,nb_elemt*sizeof(p));
-  p->z = aligned_alloc(64,nb_elemt*sizeof(p));
-  
-  p->fx = aligned_alloc(64,nb_elemt*sizeof(p));
-  p->fy = aligned_alloc(64,nb_elemt*sizeof(p));
-  p->fz = aligned_alloc(64,nb_elemt*sizeof(p));
-  
-  //initialisation a 0 des forces 
-  for (int i = 0; i <nb_elemt ; i++)
+  jon.frc=(force_t**)malloc(sizeof(force_t*)*p->N_particles_total);
+  jon.som_frc=(force_t*)malloc(sizeof(force_t)*p->N_particles_total);
+   
+  for (int i = 0; i < p->N_particles_total; i++)
   {
-    p->fx[i] = 0.0;
-    p->fy[i] = 0.0;
-    p->fz[i] = 0.0;
+      jon.frc[i]=(force_t*)malloc(sizeof(force_t)*p->N_particles_total);
   }
-  
-  for (int i = 0; i < nb_elemt; i++)
+    
+  //partie initialisation des forces  
+  for (int i = 0; i < p->N_particles_total; i++)
   {
-    fscanf(file,"%d  %lf   %lf   %lf",&type,&x,&y,&z);
-    p->type[i]=type;
-    p->x[i]=x;
-    p->y[i]=y;
-    p->z[i]=z;
-  
-  }
-  
-  return p;
-
-}
-
-//affichage des coordonnees
-void affichage(particles_t *p)
-{
-  //check if pointer is NULL
-  printf(">>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>\n");
-  printf("Question 1\n");
-  printf("PR  \t t  \t x \t\t y \t\t z\n");
-
-  for (int i = 0; i < p->nb_elemt; i++)
-  {
-   printf("%d \t %d \t %lf \t %lf \t %lf\n",i,p->type[i],p->x[i],p->y[i],p->z[i]);
-  }
-
-  printf(">>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>\n");
-}
-
-
-// calculer les distances entres les particlues et la retourner sous forme d'un tabelau 
-double **distance_particules(particles_t *p)
-{ 
-   double **dist =(double**)malloc(p->nb_elemt*sizeof(double*));
-   double **tmp=(double**)malloc(p->nb_elemt*sizeof(double*));
-
-  for (int i = 0; i < p->nb_elemt; i++)
-  {
-    dist[i] =malloc(p->nb_elemt*sizeof(double));
-    tmp[i] =malloc(p->nb_elemt*sizeof(double));
-    for (int j = 0; j < p->nb_elemt; j++)
+    for (int j = 0; j < p->N_particles_total; j++)
     {
-      if(i!=j)
-      {
-             if(i < j)
-             {
+      //initialisation des force pour chaque particule
+      jon.frc[i][j].fx = 0.0;
+      jon.frc[i][j].fy = 0.0;
+      jon.frc[i][j].fz = 0.0;
+    }
+
+    //initialisation des sommes des forces 
+    jon.som_frc[i].fx = 0.0;
+    jon.som_frc[i].fy = 0.0;
+    jon.som_frc[i].fz = 0.0;
+  }
+
+    for (int i = 0; i < p->N_particles_total; i++)
+    {
+      for (int j = i+1; j < p->N_particles_total; j++)
+       {
         
-             tmp[i][j]=    sqrt(((p->x[i] - p->x[j])*(p->x[i] - p->x[j])) +
-                                ((p->y[i] - p->y[j])*(p->y[i] - p->y[j])) + 
-                                ((p->z[i] - p->z[j])*(p->z[i] - p->z[j])));
-             }else if(i>j)
-             {
-             tmp[i][j] = tmp[j][i];
-             }
+           tmp +=((sigma*sigma*sigma*sigma*sigma*sigma*sigma*sigma*sigma*sigma*sigma*sigma)
+           /(r[i][j] * r[i][j] * r[i][j] * r[i][j] * r[i][j] * r[i][j]))
+           - 2*((sigma*sigma*sigma*sigma*sigma*sigma)/(r[i][j] * r[i][j] *r[i][j]));
 
-      dist[i][j]=tmp[i][j];
-      }
+           //calculs des differentes forces avec la formule de cours 
+           jon.frc[i][j].fx = - 48*eps*(((sigma*sigma*sigma*sigma*sigma*sigma*sigma*sigma*sigma*sigma*sigma*sigma*sigma*sigma)
+                      /(r[i][j]*r[i][j] * r[i][j] * r[i][j] * r[i][j] * r[i][j] * r[i][j]))
+                      -((sigma*sigma*sigma*sigma*sigma*sigma*sigma*sigma)/
+                      (r[i][j]*r[i][j]*r[i][j]*r[i][j])))*(p[i].coord.x - p[j].coord.x);
+           jon.frc[i][j].fy = - 48*eps*(((sigma*sigma*sigma*sigma*sigma*sigma*sigma*sigma*sigma*sigma*sigma*sigma*sigma*sigma)
+                      /(r[i][j]*r[i][j] * r[i][j] * r[i][j] * r[i][j] * r[i][j] * r[i][j]))
+                      -((sigma*sigma*sigma*sigma*sigma*sigma*sigma*sigma)/
+                      (r[i][j]*r[i][j]*r[i][j]*r[i][j])))*(p[i].coord.y - p[j].coord.y);
+           jon.frc[i][j].fz = - 48*eps*(((sigma*sigma*sigma*sigma*sigma*sigma*sigma*sigma*sigma*sigma*sigma*sigma*sigma*sigma)
+                      /(r[i][j]*r[i][j] * r[i][j] * r[i][j] * r[i][j] * r[i][j] * r[i][j]))
+                      -((sigma*sigma*sigma*sigma*sigma*sigma*sigma*sigma)/
+                      (r[i][j]*r[i][j]*r[i][j]*r[i][j])))*(p[i].coord.z - p[j].coord.z);
+
+          //mise a jour de la force j avec i 
+          jon.frc[j][i].fx =-jon.frc[i][j].fx;
+          jon.frc[j][i].fy =-jon.frc[i][j].fy;
+          jon.frc[j][i].fz =-jon.frc[i][j].fz;
+         
+         //mise a jour de la force i avec j 
+        jon.frc[i][j].fx =jon.frc[i][j].fx;
+        jon.frc[i][j].fy =jon.frc[i][j].fy;
+        jon.frc[i][j].fz =jon.frc[i][j].fz;
+
      
-    }
-  }
- 
-  return dist;
-}
+          sommefx += jon.frc[i][j].fx;
+          sommefy += jon.frc[i][j].fy;
+          sommefz += jon.frc[i][j].fz;
+       }
 
-  
-
-void Lennard_Jones(particles_t *p, double **dist)
-{
-  // calculer le potentiel lennard jones avec les distances r en paramettres et les particules 
-  int i,j;
-  double Ulj = 0.0; 
-  double val = 0.0;
-  double sigma= 0.3;
-  double eps=0.2;
-
-  while (i<p->nb_elemt)
-  {
-    while (j<p->nb_elemt)
-    {           // faut fusionnner pour alller plus rapidment 
-      if (i<j) // ici il faut supprimer la condition 
-      {
-        val=val+(pow((sigma/dist[i][j]),12) - 2*(pow((sigma/dist[i][j]),6)));
+        //affecter les somme des forces 
+        jon.som_frc[i].fx = sommefx;
+        jon.som_frc[i].fy = sommefy;
+        jon.som_frc[i].fz = sommefz;
       }
-     j++;  
-    }
-   i++;
-  }
-  
-  Ulj = 4*eps*val;
-  printf("Question 2\n");
-  printf("\n le potentiel Lennard_Jones ULJ=%lf  \n ",Ulj);
-  printf(">>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>\n");
+    
+    //calulc de lennard jones terme avec la formule du cours 
+    jon.Ulj = 4*eps*tmp;
+
+  return jon;
 }
 
 
-void forces_nulles(particles_t *p)
+particles_t *update_particle_data(particles_t *p, vec_t *tv, int N)
 {
-  double cpt=0.0;
-  int i=0;
-  while (i<p->nb_elemt)
+
+  particles_t *tmp = (particles_t*)malloc(sizeof(particles_t)*p->N_particles_total);
+  tmp->N_particles_total = p->N_particles_total;
+
+  for (int i = 0; i < N; i++)
   {
-    cpt= cpt+ p->fx[i] + p->fy[i] +p->fz[i];
+    for (int j = 0; j < tmp->N_particles_total; j++)
+    {
+      tmp[j].coord.x = p[j].coord.x + tv[i].x;
+      tmp[j].coord.y = p[j].coord.y + tv[i].y;
+      tmp[j].coord.z = p[j].coord.z + tv[i].z;
+    }
+  }
+  
+  return tmp;
+}
+
+
+lennard_jones compute_Lennard_Jones_periodic(particles_t *p, double **r, int N)
+{
+  /* calcul periodique de lennard jones */
+  double sommefx = 0.0;
+  double sommefy = 0.0;
+  double sommefz = 0.0;
+  double k = 0.5;
+
+  lennard_jones jon;
+  double tmp = 0.0;
+
+  jon.frc=(force_t**)malloc(sizeof(force_t*)*p->N_particles_total);
+  jon.som_frc=(force_t*)malloc(sizeof(force_t)*p->N_particles_total);
+
+  for (int i = 0; i < p->N_particles_total; i++)
+  {
+      jon.frc[i]=(force_t*)malloc(sizeof(force_t)*p->N_particles_total);
+  }
+  
+  
+  for (int i = 0; i < p->N_particles_total; i++)
+  {
+    for (int j = 0; j < p->N_particles_total; j++)
+    {
+      /*initialisation des force pour chaque particule*/
+      jon.frc[i][j].fx = 0.0;
+      jon.frc[i][j].fy = 0.0;
+      jon.frc[i][j].fz = 0.0;
+    }
+
+    /*initialisation des sommes des forces */
+    jon.som_frc[i].fx = 0.0;
+    jon.som_frc[i].fy = 0.0;
+    jon.som_frc[i].fz = 0.0;
+  }
+  
+  for (int i_sym = 0; i_sym < N; i_sym++)
+  {
+    for (int i = 0; i < p->N_particles_total; i++)
+      {
+        for (int j = i+1; j < p->N_particles_total; j++)
+        {
+          
+          if (r[i][j] > R_cut*R_cut)
+              continue;
+          
+            tmp +=((sigma*sigma*sigma*sigma*sigma*sigma*sigma*sigma*sigma*sigma*sigma*sigma)
+           /(r[i][j] * r[i][j] * r[i][j] * r[i][j] * r[i][j] * r[i][j]))
+           - 2*((sigma*sigma*sigma*sigma*sigma*sigma)/(r[i][j] * r[i][j] *r[i][j]));
+
+            /*calculs des differentes forces avec la formule de cours*/
+           jon.frc[i][j].fx = - 48*eps*(((sigma*sigma*sigma*sigma*sigma*sigma*sigma*sigma*sigma*sigma*sigma*sigma*sigma*sigma)
+                      /(r[i][j]*r[i][j] * r[i][j] * r[i][j] * r[i][j] * r[i][j] * r[i][j]))
+                      -((sigma*sigma*sigma*sigma*sigma*sigma*sigma*sigma)/
+                      (r[i][j]*r[i][j]*r[i][j]*r[i][j])))*(p[i].coord.x - p[j].coord.x);
+           jon.frc[i][j].fy = - 48*eps*(((sigma*sigma*sigma*sigma*sigma*sigma*sigma*sigma*sigma*sigma*sigma*sigma*sigma*sigma)
+                      /(r[i][j]*r[i][j] * r[i][j] * r[i][j] * r[i][j] * r[i][j] * r[i][j]))
+                      -((sigma*sigma*sigma*sigma*sigma*sigma*sigma*sigma)/
+                      (r[i][j]*r[i][j]*r[i][j]*r[i][j])))*(p[i].coord.y - p[j].coord.y);
+           jon.frc[i][j].fz = - 48*eps*(((sigma*sigma*sigma*sigma*sigma*sigma*sigma*sigma*sigma*sigma*sigma*sigma*sigma*sigma)
+                      /(r[i][j]*r[i][j] * r[i][j] * r[i][j] * r[i][j] * r[i][j] * r[i][j]))
+                      -((sigma*sigma*sigma*sigma*sigma*sigma*sigma*sigma)/
+                      (r[i][j]*r[i][j]*r[i][j]*r[i][j])))*(p[i].coord.z - p[j].coord.z);
+
+          /*mise a jour de la force j avec i */
+          jon.frc[j][i].fx =-jon.frc[i][j].fx;
+          jon.frc[j][i].fy =-jon.frc[i][j].fy;
+          jon.frc[j][i].fz =-jon.frc[i][j].fz;
+         
+          /*mise a jour de la force i avec j*/ 
+          jon.frc[i][j].fx =jon.frc[i][j].fx;
+          jon.frc[i][j].fy =jon.frc[i][j].fy;
+          jon.frc[i][j].fz =jon.frc[i][j].fz;
+
+       
+          sommefx += jon.frc[i][j].fx;
+          sommefy += jon.frc[i][j].fy;
+          sommefz += jon.frc[i][j].fz;
+       }
+
+        /*affcter les sommes des forces*/ 
+        jon.som_frc[i].fx = sommefx;
+        jon.som_frc[i].fy = sommefy;
+        jon.som_frc[i].fz = sommefz;
+       }
+  }
+    
+     if(N == 1)
+        k = 1;
+
+  /*calulc de lennard jones terme avec la formule du cours*/ 
+  jon.Ulj = 4*k*eps*tmp;
+
+  return jon;
+}
+
+//print forces for each particles
+void print_forces(lennard_jones jon, particles_t *p)
+{ 
+  /* affichage des forces */
+  for (int i = 0; i < p->N_particles_total; i++)
+      {
+        for (int j = 0; j < p->N_particles_total; j++)
+        {
+           printf("%lf  \t  %lf  \t  %lf", jon.frc[i][j].fx, jon.frc[i][j].fy, jon.frc[j][i].fz) ;
+          
+        }
+        printf("\n");
+       }
+}
+
+
+void print_sum_forces(lennard_jones jon, particles_t *p)
+{ 
+  /*affichage de la somme des forces */
+  
+  int i=0;
+  printf("\a\a\a ## Somme des forces calculées ##\a\a\a \n");
+  while(i < p->N_particles_total)
+  {
+       printf("Fx[%d] = %lf \t Fy[%d] = %lf  \t  Fz[%d] = %lf \n", i, jon.som_frc[i].fx , i, jon.som_frc[i].fy , i, jon.som_frc[i].fz); 
+       i++;
+  }
+  
+}
+
+void lennard_verify(lennard_jones jon, particles_t *p)
+{ 
+  double Fx = 0.0;
+  double Fy = 0.0;
+  double Fz = 0.0;
+  int i=0;
+  int j=0;
+  
+  while (i < p->N_particles_total)
+  {
+    while(j < p->N_particles_total)
+    {
+      Fx=Fx+jon.frc[i][j].fx;
+      Fy=Fy+jon.frc[i][j].fy;
+      Fz=Fz+jon.frc[i][j].fz;
+      j++;
+    }
     i++;
   }
-  if(cpt== 0)
-    printf("la sommes des forces agissant sur les particules est nulles\n");
-  else
-    printf("la sommes des forces agissant sur les particules n est pas nulles = %lf\n", cpt);
-    
+
+  printf("Fx = %lf  Fy = %lf  Fz = %lf\n", Fx,Fy,Fz);
 }
 
-particles_t *Forces(particles_t *p, double **dist)
+
+void free_lennard(lennard_jones jon, particles_t *p)
 {
- // calculer les force en prenant en paramettre les distances deja calculees et les particules 
-  double sigma=0.3;
-  for (int i = 0; i < p->nb_elemt; i++)
+
+  int i=0;
+  while (i<p->N_particles_total)
   {
-    for (int j = 0; j < p->nb_elemt; j++)
-    {
-      if(i >j)
-      {
-        p->fx[i] =p->fx[i] +( -48*sigma*((pow((sigma/dist[i][j]),14))-(pow((sigma/dist[i][j]),8)))*(p->x[i] - p->x[j]));
-        p->fy[i] =p->fy[i] +( -48*sigma*((pow((sigma/dist[i][j]),14))-(pow((sigma/dist[i][j]),8)))*(p->y[i] - p->y[j]));
-        p->fz[i] =p->fz[i] +( -48*sigma*((pow((sigma/dist[i][j]),14))-(pow((sigma/dist[i][j]),8)))*(p->z[i] - p->z[j]));
-      }
-    }
+    	free(jon.frc[i]);
+  	i++;
   }
   
- 
-  printf("Question 3\n");
+  free(jon.frc);
+  free(jon.som_frc);
+
+}
+
+
+particles_t *read_data(char *fname)
+{
+
+  //check if file is null
+  if (fname == NULL)
+  {
+    printf("Error read data %s\n",__func__);
+    exit(0);
+  }
+  FILE *file=fopen(fname, "r+");
+  //check file
+  if(!file)
+    exit(1);
+  int nb_elmt =0;
+  int c;
+  
+  //check the number of element in file
+  do
+  {
+    if(c=='\n')
+      nb_elmt++;
+  } while((c=fgetc(file))!=EOF);
+
+  particles_t *p = (particles_t*)malloc(sizeof(particles_t)*nb_elmt);
  
 
+  rewind(file);
+  fscanf(file,"%d",&p->N_particles_total);
+
+  //check if nb_particles_total different number of coordinate
+  if (p->N_particles_total != nb_elmt-1)
+  {
+    printf("Number patricle is different of the number coordinates\n" );
+    exit(0);
+  }
+
+  for (int i = 0; i < p->N_particles_total; i++)
+  {
+    fscanf(file,"  %d   %lf   %lf   %lf",&p[i].type,&(p[i].coord.x), &(p[i].coord.y),&(p[i].coord.z));
+    
+  }
   return p;
 }
 
+/*Function for print data
+input param: particles
+*/
+void print_data(particles_t *p)
+{
+  //check if pointer is NULL
+  if(p == NULL)
+  {
+    printf("Error pointer is null\n" );
+    exit(0);
+  }
+  printf("P  \t| Type  \t |X \t\t |Y \t\t |Z\n");
+
+  for (int i = 0; i < p->N_particles_total; i++)
+  {
+    printf("%d \t %d \t %lf \t %lf \t %lf\n",i,p[i].type,p[i].coord.x, p[i].coord.y,p[i].coord.z);
+  }
+
+  printf("=======================================================\n");
+}
+
+/*compute distance different particles
+ *params: particles
+ *return distance for the differents particles
+*/
+double **compute_distance(particles_t *p)
+{
+  //check if pointer is NULL
+  if(p == NULL)
+  {
+    printf("Error pointer is null\n" );
+    exit(0);
+  }
+
+   double **r = NULL;
+   r=(double**)malloc(p->N_particles_total*sizeof(double*));
+   for (int i = 0; i < p->N_particles_total; i++)
+     r[i] =(double*)malloc(p->N_particles_total*sizeof(double));
 
 
+  for (int i = 0; i < p->N_particles_total; i++)
+  {
+    for (int j = i+1; j < p->N_particles_total; j++)
+    {
+        //compute distance
+        r[i][j] = ((p[i].coord.x - p[j].coord.x)*(p[i].coord.x - p[j].coord.x))+
+                 ((p[i].coord.y - p[j].coord.y)*(p[i].coord.y - p[j].coord.y))+
+                 ((p[i].coord.z - p[j].coord.z)*(p[i].coord.z - p[j].coord.z));
+        //update  distance
+        r[j][i] = r[i][j];
+    }
+  }
 
+  return r;
+}
 
+/*traslator vector initialisation
+*/
+vec_t *translator_vector_init(int N)
+{
+  vec_t *tv = (vec_t*)malloc(sizeof(vec_t)*N);
 
+  for (int i = 0; i < N; i++)
+  {
+    tv[i].x = (double)((i / 9) - 1)*L;
+    tv[i].y = (double)((i / 3)% 3 -1)*L;
+    tv[i].z = (double)((i%3) - 1) *L;
+  }
+  
+  return tv;
+}
 
+//free memory
+void free_vector_translate( vec_t *tv)
+{
+  free(tv);
+}
+
+void free_distance(double **r, particles_t *p)
+{
+  for (int i = 0; i < p->N_particles_total; i++)
+              free(r[i]);
+
+  free(r);
+}
+
+void free_particle(particles_t *p)
+{
+  free(p);
+}

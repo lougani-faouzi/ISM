@@ -1,24 +1,41 @@
-#include "simulation.h"
 #include <stdio.h>
-#include <math.h>
+#include <stdlib.h>
+#include "simulation.h"
 
-int main(){
-  printf("\n TD1 lougani FAOUZI m2 IHPS -module ISM \n");
- 
-  //lecture des donnees 
-  particles_t *p=lecture("particule.xyz");
+
+int main(int argc, char **argv)
+{
   
-  // affichage 
-  affichage(p);
+  char *fname = argv[1];
+  int N_step = atoi(argv[2]);
+  int test = atoi(argv[3]);
   
-   
-  //on calcul le potentiel 
-  Lennard_Jones(p,distance_particules(p));
+  particles_t *donne = NULL;
+  lennard_jones jon;
+  vec_t *tv;
   
+  double **r ;
+
+  //read data in filename
+  donne = read_data(fname);
+
+  tv = translator_vector_init(N_sym);
   
-  //calculer les forces et verifier si le systeme est stable ou pas  
-  forces_nulles(Forces(p,distance_particules(p)));
+  //distance
+  r = compute_distance(donne);
+  //lennard Jones Non periodique
+  jon =compute_Lennard_Jones(donne , r);
+  printf("Ulj = %lf\n", jon.Ulj);
+
+  lennard_verify(jon, donne);
+
+  print_forces(jon,donne);
+  printf("Ulj = %lf\n", jon.Ulj);
+  lennard_verify(jon, donne);
+  
+  print_sum_forces(jon, donne);
   
 
   return 0;
 }
+
