@@ -1,6 +1,7 @@
 #include "simulation.h"
 #include <math.h>
 
+
 lennard_jones compute_Lennard_Jones(particles_t *p, double **r)
 {
   
@@ -274,6 +275,10 @@ void free_lennard(lennard_jones jon, particles_t *p)
 }
 
 
+/*read data for coord particles
+  param file: name of file
+  return : table of coordinate particles
+*/
 particles_t *read_data(char *fname)
 {
 

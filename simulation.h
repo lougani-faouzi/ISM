@@ -1,8 +1,9 @@
-#ifndef _SIMULATION_H_
-#define _SIMULATION_H_
+#ifndef _LENNARDJONES_H_
+#define _LENNARDJONES_H_
 #include <string.h>
 #include <stdio.h>
 #include <stdlib.h>
+
 
 
 
@@ -19,17 +20,16 @@
 #define T0  300
 #define gama   0.01
 
-typedef struct force
+
+//struct for the differents forces
+typedef struct force_s
 {
-  /* declaration de la structure contenant les forces */  
-  
   double fx;
   double fy;
   double fz;
-  
 }force_t;
 
-
+//struct for lennard jones
 typedef struct lennard
 {
   /* structure pour lennard jones */
@@ -40,6 +40,8 @@ typedef struct lennard
   
 }lennard_jones;
 
+
+
 /*stock the coordinate x y z*/
 typedef struct coord_s
 {
@@ -48,6 +50,7 @@ typedef struct coord_s
   double z;
 }coord_t;
 
+//struct for stock the differents value for particles
 typedef struct particles_s
 {
   int N_particles_total;
@@ -55,6 +58,7 @@ typedef struct particles_s
   int type;
   coord_t coord;
 }particles_t;
+
 
 //tanslator vector
 typedef struct vec_s
@@ -72,6 +76,10 @@ void print_sum_forces(lennard_jones jon, particles_t *p);
 lennard_jones compute_Lennard_Jones_periodic(particles_t *p, double **r, int N);
 void free_lennard(lennard_jones jon, particles_t *p);
 
+
+
+
+
 //funtion to return struct particles
 particles_t *read_data(char *fname);
 //function to print the data of particles
@@ -87,5 +95,5 @@ void free_vector_translate( vec_t *tv);
 void free_distance(double **r, particles_t *p);
 void free_particle(particles_t *p);
 
-#endif 
 
+#endif
